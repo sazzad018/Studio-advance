@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Camera, Image as ImageIcon, Calendar, DollarSign, TrendingDown, TrendingUp, Bell, Clock } from 'lucide-react';
+import { Users, Camera, Image as ImageIcon, Calendar, DollarSign, TrendingDown, TrendingUp, Bell, Clock, LayoutGrid, List } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { ClientReminder, ClientProfile } from './AllClients';
@@ -10,6 +10,7 @@ export default function Dashboard() {
   
   const [reminders, setReminders] = useState<ClientReminder[]>([]);
   const [allClientsProfiles, setAllClientsProfiles] = useState<ClientProfile[]>([]);
+  const [reminderView, setReminderView] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     const rm = localStorage.getItem('allClientsReminders');
@@ -46,10 +47,28 @@ export default function Dashboard() {
     <div className="space-y-6">
       {activeReminders.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 shadow-sm mb-6">
-          <h2 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
-            <Bell size={20} className="animate-pulse" /> গুরুত্বপূর্ণ রিমাইন্ডারসমূহ
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-orange-800 flex items-center gap-2">
+              <Bell size={20} className="animate-pulse" /> গুরুত্বপূর্ণ রিমাইন্ডারসমূহ
+            </h2>
+            <div className="flex bg-white rounded-lg p-1 border border-orange-200 shadow-sm">
+              <button 
+                onClick={() => setReminderView('list')}
+                className={`p-1.5 rounded-md ${reminderView === 'list' ? 'bg-orange-100 text-orange-700' : 'text-gray-400 hover:text-gray-600'}`}
+                title="লিস্ট ভিউ"
+              >
+                <List size={16} />
+              </button>
+              <button 
+                onClick={() => setReminderView('grid')}
+                className={`p-1.5 rounded-md ${reminderView === 'grid' ? 'bg-orange-100 text-orange-700' : 'text-gray-400 hover:text-gray-600'}`}
+                title="গ্রিড ভিউ"
+              >
+                <LayoutGrid size={16} />
+              </button>
+            </div>
+          </div>
+          <div className={`${reminderView === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'flex flex-col space-y-3'}`}>
             {activeReminders.map(reminder => {
               const client = allClientsProfiles.find(c => c.id === reminder.clientId);
               return (

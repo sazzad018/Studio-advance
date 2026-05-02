@@ -16,6 +16,7 @@ import WorkLog from './components/WorkLog';
 import TimeTracking from './components/TimeTracking';
 import AllClients from './components/AllClients';
 import EmployeeList from './components/EmployeeList';
+import WebsiteInfo from './components/WebsiteInfo';
 import UserManagement from './components/UserManagement';
 import Login from './components/Login';
 import LeadManagement from './components/LeadManagement';
@@ -75,6 +76,14 @@ function AppContent() {
         return <Messages />;
       case 'clients':
         return <Clients onNavigate={(tab) => setCurrentTab(tab)} />;
+      case 'website':
+        return <AllClients categoryProp="Website" onNavigate={(tab) => setCurrentTab(tab)} />;
+      case 'automation':
+        return <AllClients categoryProp="Automation" onNavigate={(tab) => setCurrentTab(tab)} />;
+      case 'course':
+        return <AllClients categoryProp="Course" onNavigate={(tab) => setCurrentTab(tab)} />;
+      case 'marketing':
+        return <AllClients categoryProp="Marketing" onNavigate={(tab) => setCurrentTab(tab)} />;
       case 'all-clients':
         return <AllClients onNavigate={(tab) => setCurrentTab(tab)} />;
       case 'message-templates':
@@ -99,6 +108,8 @@ function AppContent() {
         return <TimeTracking />;
       case 'employees':
         return <EmployeeList />;
+      case 'website-info':
+        return <WebsiteInfo />;
       case 'lead':
         return <LeadManagement />;
       case 'users':

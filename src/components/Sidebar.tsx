@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LayoutDashboard, Users, Camera, Image as ImageIcon, Calendar, Briefcase, FileText, Upload, X, ClipboardList, Shield, LogOut, UserPlus, MessageSquare, Clock } from 'lucide-react';
+import { LayoutDashboard, Users, Camera, Image as ImageIcon, Calendar, Briefcase, FileText, Upload, X, ClipboardList, Shield, LogOut, UserPlus, MessageSquare, Clock, Globe, Laptop, Settings, BookOpen, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 type SidebarProps = {
@@ -36,7 +36,11 @@ export default function Sidebar({ currentTab, setCurrentTab }: SidebarProps) {
     { id: 'projects', label: 'প্রজেক্ট লিস্ট', icon: Briefcase },
     { id: 'messages', label: 'মেসেজ বক্স', icon: MessageSquare },
     { id: 'clients', label: 'ক্লায়েন্ট প্রোফাইল', icon: Users },
-    { id: 'all-clients', label: 'অল ক্লায়েন্ট', icon: Briefcase },
+    { id: 'all-clients', label: 'অল লিড / ক্লায়েন্ট', icon: Briefcase },
+    { id: 'website', label: 'ওয়েবসাইট', icon: Laptop },
+    { id: 'automation', label: 'অটোমেশন', icon: Settings },
+    { id: 'course', label: 'কোর্স', icon: BookOpen },
+    { id: 'marketing', label: 'মার্কেটিং', icon: TrendingUp },
     { id: 'message-templates', label: 'মেসেজ টেমপ্লেটস', icon: MessageSquare },
     { id: 'models', label: 'মডেল বিশ্লেষণ', icon: Camera },
     { id: 'scheduling', label: 'শিডিউলিং', icon: Calendar },
@@ -49,6 +53,7 @@ export default function Sidebar({ currentTab, setCurrentTab }: SidebarProps) {
     { id: 'work-log', label: 'ওয়ার্ক লগ', icon: FileText },
     { id: 'time-tracking', label: 'ইন/আউট টাইম', icon: Clock },
     { id: 'employees', label: 'এমপ্লয়ি লিস্ট', icon: Users },
+    { id: 'website-info', label: 'ওয়েবসাইট ইনফো', icon: Globe },
   ].filter(item => {
     if (currentUser?.role === 'admin') return true;
     if (item.id === 'work-log' || item.id === 'time-tracking') return true;

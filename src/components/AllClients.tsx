@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Briefcase, MessageSquare, Clock, Plus, Settings, ChevronRight, CheckCircle, ExternalLink, Calendar as CalendarIcon, Phone, Loader } from 'lucide-react';
 import { parseClientData } from '../services/ai';
 
-export type ServiceCategory = 'Website' | 'Automation' | 'Ads' | 'Marketing';
+export type ServiceCategory = 'Website' | 'Automation' | 'Course' | 'Marketing';
 export type ClientStatus = 'Active' | 'Inactive';
 
 export interface ClientProfile {
@@ -21,6 +21,14 @@ export interface ClientProfile {
   // Facebook Ads Specific
   fbAdStartDate?: string;
   fbAdEndDate?: string;
+  fbAdCampaignType?: string;
+  fbAdCampaignName?: string;
+  fbAdCampaignBudget?: string;
+  
+  // Website Specific
+  websiteUsername?: string;
+  websitePassword?: string;
+  websiteProvider?: string;
 }
 
 export interface ClientComment {
@@ -41,7 +49,7 @@ export interface ClientReminder {
   isFbAdEndReminder?: boolean;
 }
 
-export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) => void }) {
+export default function AllClients({ onNavigate, categoryProp = 'All' }: { onNavigate?: (tab: string) => void, categoryProp?: ServiceCategory | 'All' }) {
   const { currentUser, users } = useAuth();
   
   const [clients, setClients] = useState<ClientProfile[]>(() => {
@@ -57,7 +65,13 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [activeCategory, setActiveCategory] = useState<ServiceCategory | 'All'>('All');
+  const [activeCategory, setActiveCategory] = useState<ServiceCategory | 'All'>(categoryProp);
+
+  useEffect(() => {
+    setActiveCategory(categoryProp);
+    setSelectedClientId(null);
+  }, [categoryProp]);
+
   const [activeStatusFilter, setActiveStatusFilter] = useState<ClientStatus | 'All'>('All');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
@@ -84,7 +98,7 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
            const st = newFormData.serviceType.toLowerCase();
            if (st.includes('web')) newFormData.serviceType = 'Website';
            else if (st.includes('auto')) newFormData.serviceType = 'Automation';
-           else if (st.includes('ad')) newFormData.serviceType = 'Ads';
+           else if (st.includes('course')) newFormData.serviceType = 'Course';
            else newFormData.serviceType = 'Marketing';
         }
     
@@ -115,11 +129,30 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
     e.preventDefault();
     if (!formData.businessName) return;
 
+    let clientId = formData.id;
     if (formData.id) {
       setClients(clients.map(c => c.id === formData.id ? { ...c, ...formData } as ClientProfile : c));
     } else {
-      setClients([...clients, { ...formData, id: Date.now().toString(), createdAt: new Date().toISOString() } as ClientProfile]);
+      clientId = Date.now().toString();
+      setClients([...clients, { ...formData, id: clientId, createdAt: new Date().toISOString() } as ClientProfile]);
     }
+    
+    // Auto-create notification for Facebook Ads End Date
+    if ((formData.serviceType === 'Course' || formData.serviceType === 'Marketing') && formData.fbAdEndDate) {
+      const exists = reminders.find(r => r.clientId === clientId && r.isFbAdEndReminder);
+      if (!exists && currentUser) {
+        const text = `Facebook Ad Campaign (Type: ${formData.fbAdCampaignType || 'N/A'}) Ending today for ${formData.businessName}. Please contact the client immediately!\n\nMessage template: \n"Hello, your Facebook Ads campaign ends today. Please let us know if you want to renew the campaign!"`;
+        setReminders([...reminders, {
+          id: Date.now().toString() + Math.random().toString(36).substring(7),
+          clientId: clientId!,
+          text,
+          assignedToId: currentUser.id,
+          dueDate: formData.fbAdEndDate,
+          isFbAdEndReminder: true
+        }]);
+      }
+    }
+
     setIsModalOpen(false);
     setFormData({ serviceType: 'Marketing', status: 'Active' });
   };
@@ -138,26 +171,28 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
       <div className="w-1/3 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-100 flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">অল লিড / ক্লায়েন্ট</h2>
+            <h2 className="text-xl font-bold text-gray-800">{activeCategory === 'All' ? 'অল লিড / ক্লায়েন্ট' : `${activeCategory} ক্লায়েন্ট`}</h2>
             <button 
-              onClick={() => { setFormData({ serviceType: 'Marketing', status: 'Active' }); setRawText(''); setIsModalOpen(true); }}
+              onClick={() => { setFormData({ serviceType: activeCategory !== 'All' ? activeCategory as ServiceCategory : 'Marketing', status: 'Active' }); setRawText(''); setIsModalOpen(true); }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg"
             >
               <Plus size={18} />
             </button>
           </div>
           
-          <div className="flex flex-wrap gap-2">
-            {['All', 'Website', 'Automation', 'Ads', 'Marketing'].map(cat => (
-              <button 
-                key={cat}
-                onClick={() => setActiveCategory(cat as any)}
-                className={`px-3 py-1 text-sm rounded-full ${activeCategory === cat ? 'bg-indigo-100 text-indigo-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          {categoryProp === 'All' && (
+            <div className="flex flex-wrap gap-2">
+              {['All', 'Website', 'Automation', 'Course', 'Marketing'].map(cat => (
+                <button 
+                  key={cat}
+                  onClick={() => setActiveCategory(cat as any)}
+                  className={`px-3 py-1 text-sm rounded-full ${activeCategory === cat ? 'bg-indigo-100 text-indigo-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
           
           <div className="flex gap-2 border-b border-gray-200 pb-2">
             <button 
@@ -299,7 +334,7 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
                   <select value={formData.serviceType} onChange={e => setFormData({...formData, serviceType: e.target.value as any})} className="w-full border-gray-300 rounded-lg p-2.5 border bg-white">
                     <option value="Website">Website</option>
                     <option value="Automation">Automation</option>
-                    <option value="Ads">Ads</option>
+                    <option value="Course">Course</option>
                     <option value="Marketing">Marketing</option>
                   </select>
                 </div>
@@ -319,7 +354,7 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
                   <input type="text" value={formData.adAccountId || ''} onChange={e => setFormData({...formData, adAccountId: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" />
                 </div>
                 
-                {formData.serviceType === 'Ads' && (
+                {(formData.serviceType === 'Course' || formData.serviceType === 'Marketing') && (
                   <>
                     <div className="col-span-2 mt-4"><hr/><p className="mt-2 text-sm font-bold text-indigo-700">Facebook Ads Setup</p></div>
                     <div>
@@ -329,6 +364,45 @@ export default function AllClients({ onNavigate }: { onNavigate?: (tab: string) 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">ক্যাম্পেইন শেষের তারিখ</label>
                       <input type="date" value={formData.fbAdEndDate || ''} onChange={e => setFormData({...formData, fbAdEndDate: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ক্যাম্পেইনের ধরন</label>
+                      <select value={formData.fbAdCampaignType || ''} onChange={e => setFormData({...formData, fbAdCampaignType: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border bg-white">
+                        <option value="">ফাঁকা (নির্বাচন করুন)</option>
+                        <option value="Message">Message</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Engagement">Engagement</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ক্যাম্পেইনের নাম</label>
+                      <input type="text" value={formData.fbAdCampaignName || ''} onChange={e => setFormData({...formData, fbAdCampaignName: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" placeholder="e.g. Eid Mega Sale" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">বাজেট (Dollar $)</label>
+                      <input type="number" value={formData.fbAdCampaignBudget || ''} onChange={e => setFormData({...formData, fbAdCampaignBudget: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" placeholder="e.g. 100" />
+                    </div>
+                  </>
+                )}
+                
+                {formData.serviceType === 'Website' && (
+                  <>
+                    <div className="col-span-2 mt-4"><hr/><p className="mt-2 text-sm font-bold text-indigo-700">Website Setup Details</p></div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">প্রোভাইডার (কোথা থেকে কেনা)</label>
+                      <input type="text" value={formData.websiteProvider || ''} onChange={e => setFormData({...formData, websiteProvider: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" placeholder="e.g. Hostinger, Namecheap" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ওয়েবসাইটের লিংক</label>
+                      <input type="url" value={formData.websiteUrl || ''} onChange={e => setFormData({...formData, websiteUrl: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" placeholder="https://" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ইউজারনেম / ইমেইল</label>
+                      <input type="text" value={formData.websiteUsername || ''} onChange={e => setFormData({...formData, websiteUsername: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">পাসওয়ার্ড</label>
+                      <input type="text" value={formData.websitePassword || ''} onChange={e => setFormData({...formData, websitePassword: e.target.value})} className="w-full border-gray-300 rounded-lg p-2.5 border" />
                     </div>
                   </>
                 )}
@@ -427,20 +501,111 @@ function ClientDetail({ client, users, currentUser, comments, reminders, onAddCo
           </div>
         </div>
 
-        {client.serviceType === 'Ads' && client.fbAdEndDate && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 shadow-sm">
-            <div className="flex items-center gap-2 text-indigo-800 font-semibold mb-2">
-              <CalendarIcon size={18} />
-              <span>Facebook Ads Campaign</span>
+        {client.serviceType === 'Website' && (client.websiteUsername || client.websiteProvider) && (
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-blue-800 font-semibold mb-4">
+              <Settings size={18} />
+              <span>Website Credentials</span>
             </div>
-            <div className="text-sm text-indigo-700 flex justify-between items-center bg-white p-3 rounded-lg opacity-90 border border-indigo-50">
-               <div>
-                  <p><strong>Start:</strong> {client.fbAdStartDate}</p>
-                  <p><strong>End:</strong> {client.fbAdEndDate}</p>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white p-3 rounded-lg border border-blue-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Provider</p>
+                  <p className="font-medium text-gray-900">{client.websiteProvider || 'N/A'}</p>
                </div>
-               <button onClick={handleSetFbAdReminder} className="bg-indigo-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-indigo-700 shadow-sm">
-                 অটো রিমাইন্ডার সেট করুন
-               </button>
+               <div className="bg-white p-3 rounded-lg border border-blue-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Username / Email</p>
+                  <p className="font-medium text-gray-900">{client.websiteUsername || 'N/A'}</p>
+               </div>
+               <div className="bg-white p-3 rounded-lg border border-blue-50 shadow-sm text-sm text-ellipsis overflow-hidden">
+                  <p className="text-gray-500 text-xs mb-1">Password</p>
+                  <p className="font-medium text-gray-900 select-all">{client.websitePassword ? '••••••••' : 'N/A'}</p>
+                  {client.websitePassword && (
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(client.websitePassword!);
+                        alert('Password copied!');
+                      }}
+                      className="mt-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                       Copy Password
+                    </button>
+                  )}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {(client.serviceType === 'Course' || client.serviceType === 'Marketing') && (client.fbAdStartDate || client.fbAdEndDate) && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2 text-indigo-800 font-semibold">
+                <CalendarIcon size={18} />
+                <span>Facebook Ads Campaign</span>
+              </div>
+              {client.fbAdEndDate && (
+                <button onClick={handleSetFbAdReminder} className="bg-indigo-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-indigo-700 shadow-sm transition-colors">
+                  অটো রিমাইন্ডার সেট করুন
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+               <div className="bg-white p-3 rounded-lg border border-indigo-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Campaign Name</p>
+                  <p className="font-medium text-gray-900">{client.fbAdCampaignName || 'N/A'}</p>
+               </div>
+               <div className="bg-white p-3 rounded-lg border border-indigo-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Campaign Type</p>
+                  <p className="font-medium text-gray-900">{client.fbAdCampaignType || 'N/A'}</p>
+               </div>
+               <div className="bg-white p-3 rounded-lg border border-indigo-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Budget</p>
+                  <p className="font-medium text-gray-900">{client.fbAdCampaignBudget ? `$${client.fbAdCampaignBudget}` : 'N/A'}</p>
+               </div>
+               <div className="bg-white p-3 rounded-lg border border-indigo-50 shadow-sm text-sm">
+                  <p className="text-gray-500 text-xs mb-1">Duration</p>
+                  <p className="font-medium text-gray-900">{client.fbAdStartDate || '?'} to {client.fbAdEndDate || '?'}</p>
+               </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-inner">
+               <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Campaign Message Preview</p>
+               <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-lg border border-gray-100 leading-relaxed">
+{`Hello Boss,
+Your Facebook Ads campaign details are as follows:
+
+${client.fbAdCampaignName ? `🏷️ Campaign Name: ${client.fbAdCampaignName}` : ''}
+${client.fbAdCampaignType ? `🎯 Type: ${client.fbAdCampaignType}` : ''}
+${client.fbAdCampaignBudget ? `💰 Budget: $${client.fbAdCampaignBudget}` : ''}
+${client.fbAdStartDate ? `📅 Start Date: ${client.fbAdStartDate}` : ''}
+${client.fbAdEndDate ? `⏳ End Date: ${client.fbAdEndDate}` : ''}
+
+Please review this information.
+Thank you!`}
+               </pre>
+               <div className="flex gap-3 mt-3">
+                 <button 
+                   onClick={() => {
+                     const text = `Hello Boss,\nYour Facebook Ads campaign details are as follows:\n\n${client.fbAdCampaignName ? `🏷️ Campaign Name: ${client.fbAdCampaignName}\n` : ''}${client.fbAdCampaignType ? `🎯 Type: ${client.fbAdCampaignType}\n` : ''}${client.fbAdCampaignBudget ? `💰 Budget: $${client.fbAdCampaignBudget}\n` : ''}${client.fbAdStartDate ? `📅 Start Date: ${client.fbAdStartDate}\n` : ''}${client.fbAdEndDate ? `⏳ End Date: ${client.fbAdEndDate}\n` : ''}\nPlease review this information.\nThank you!`;
+                     navigator.clipboard.writeText(text);
+                     alert('মেসেজ কপি করা হয়েছে!');
+                   }}
+                   className="text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors"
+                 >
+                   কপি করুন
+                 </button>
+                 {client.whatsappNumber && (
+                    <a 
+                      href={`https://wa.me/${client.whatsappNumber}?text=${encodeURIComponent(`Hello Boss,\nYour Facebook Ads campaign details are as follows:\n\n${client.fbAdCampaignName ? `🏷️ Campaign Name: ${client.fbAdCampaignName}\n` : ''}${client.fbAdCampaignType ? `🎯 Type: ${client.fbAdCampaignType}\n` : ''}${client.fbAdCampaignBudget ? `💰 Budget: $${client.fbAdCampaignBudget}\n` : ''}${client.fbAdStartDate ? `📅 Start Date: ${client.fbAdStartDate}\n` : ''}${client.fbAdEndDate ? `⏳ End Date: ${client.fbAdEndDate}\n` : ''}\nPlease review this information.\nThank you!`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Phone size={16} />
+                      WhatsApp-এ পাঠান
+                    </a>
+                 )}
+               </div>
             </div>
           </div>
         )}

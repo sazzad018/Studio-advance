@@ -10,11 +10,14 @@ export async function parseClientData(rawText: string) {
       websiteUrl: { type: Type.STRING },
       whatsappNumber: { type: Type.STRING },
       email: { type: Type.STRING },
-      serviceType: { type: Type.STRING, enum: ['Website', 'Automation', 'Ads', 'Marketing'] },
+      serviceType: { type: Type.STRING, enum: ['Website', 'Automation', 'Course', 'Marketing'] },
       facebookPageLink: { type: Type.STRING },
       adAccountId: { type: Type.STRING },
       fbAdStartDate: { type: Type.STRING, description: "YYYY-MM-DD format" },
       fbAdEndDate: { type: Type.STRING, description: "YYYY-MM-DD format" },
+      fbAdCampaignType: { type: Type.STRING },
+      fbAdCampaignName: { type: Type.STRING },
+      fbAdCampaignBudget: { type: Type.STRING },
     }
   };
 
@@ -43,7 +46,30 @@ ${rawText}`,
   }
 }
 
+export async function enhanceItemDescription(rawText: string) {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Rewrite the following invoice item description to make it sound professional, clear, and business-appropriate. 
+Keep it concise (1-2 lines maximum). Maintain the original language (if it's in Bengali, keep it in Bengali but make it professional. If English, keep English).
+Only return the polished description without any introduction or quotes.
+
+Original description:
+${rawText}`,
+      config: {
+        temperature: 0.7
+      }
+    });
+
+    return response.text?.trim() || rawText;
+  } catch (error) {
+    console.error("AI Enhance Error:", error);
+    return rawText;
+  }
+}
+
 export async function parseLeadData(rawText: string) {
+
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {

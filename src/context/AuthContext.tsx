@@ -6,6 +6,11 @@ export const ALL_PERMISSIONS = [
   { id: 'dashboard', label: 'ড্যাশবোর্ড' },
   { id: 'projects', label: 'প্রজেক্ট লিস্ট' },
   { id: 'clients', label: 'ক্লায়েন্ট প্রোফাইল' },
+  { id: 'all-clients', label: 'অল লিড / ক্লায়েন্ট' },
+  { id: 'website', label: 'ওয়েবসাইট' },
+  { id: 'automation', label: 'অটোমেশন' },
+  { id: 'course', label: 'কোর্স' },
+  { id: 'marketing', label: 'মার্কেটিং' },
   { id: 'models', label: 'মডেল বিশ্লেষণ' },
   { id: 'scheduling', label: 'শিডিউলিং' },
   { id: 'lead', label: 'লিড' },
@@ -15,6 +20,7 @@ export const ALL_PERMISSIONS = [
   { id: 'task-manager', label: 'টাস্ক ম্যানেজার' },
   { id: 'portfolio', label: 'স্টুডিও পোর্টফোলিও' },
   { id: 'employees', label: 'এমপ্লয়ি লিস্ট' },
+  { id: 'website-info', label: 'ওয়েবসাইট ইনফো' },
   { id: 'users', label: 'ইউজার ম্যানেজমেন্ট' },
   { id: 'messages', label: 'মেসেজ বক্স' }
 ];
